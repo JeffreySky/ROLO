@@ -4,39 +4,40 @@ ROLO
 
 Project Page: [http://guanghan.info/projects/ROLO/](http://guanghan.info/projects/ROLO/)
 
-## Overview
+## 概览
 
-ROLO is short for Recurrent YOLO [[1]], aimed at simultaneous object detection and tracking. 
+ROLO是Recurrent YOLO 的简称[[1]]，旨在实现同步的目标检测与跟踪。
 
-With the regression capability of LSTMs both spatially and temporally, ROLO is able to interpret a series of high-level visual features directly into coordinates of tracked objects. By concatenating high-level visual features with YOLO detection results, ROLO is spatially supervised into specific targets. 
+得益于长短期记忆网络（LSTM）在时空维度上的回归能力，ROLO能够将一系列高级视觉特征直接解析为被追踪目标的坐标。通过将高级视觉特征与YOLO检测结果进行融合拼接，该系统在空间维度上获得了监督信号，从而实现对特定目标的精准定位追踪。
 
-The regression is two-folds: (1) The regression within one unit, i.e.,
-between the visual features and the concatenated region representations. LSTM is capable of inferring region locations from the visual features when they are concatenated to be one unit. (2) The regression over the units of a sequence, i.e., between concatenated features over a sequence of frames.
+其回归机制体现在两个层面:
+(1) 单元内的回归，即视觉特征与拼接的区域表征之间的回归。当这些特征被拼接为一个单元时，LSTM能够从视觉特征中推断出区域位置。
+(2) 序列单元间的回归，即在连续帧序列中拼接特征之间的回归。
 
-The supervision is helpful in two aspects:
-(1) When LSTM interpret the high-level visual features, the preliminary location inference helps
-to regress the features into the location of a certain visual elements/cues. The spatially supervised regression acts as an online appearance model. (2) Temporally, the LSTM learns over the sequence units to restrict the location prediction to a spatial range. 
+这种监督机制在两方面发挥重要作用：:
+(1) 当LSTM解析高级视觉特征时，初步的位置推断有助于将特征回归到特定视觉元素/线索的位置。这种空间监督的回归相当于一个在线外观模型。
+(2) 在时间维度上，LSTM通过序列单元的学习将位置预测限制在特定空间范围内。
 
-ROLO is currently an offline approach, and is expected to gain a performance boost with proper online model updating. It is still a single object tracker, and data association techniques are not yet explored for the simultaneous tracking of multiple targets.
+目前ROLO采用离线跟踪方式，若配以合适的在线模型更新机制，其性能有望进一步提升。该系统仍为单目标跟踪器，尚未探索用于多目标同步跟踪的数据关联技术。
 
 ----
-## Prerequisites
+## 环境
 - Python 2.7 or Python 3.3+
 - Tensorflow
 - Scipy
 
 ----
-## Getting Started
+## 开始
 
-### 1. Download Data and Pre-trained Models
+### 1. 下载数据和预训练模型
 
-As a generic object detector, YOLO can be trained to recognize arbitrary objects. Nevertheless, as the performance of ROLO depends on the YOLO part, we choose the default YOLO small model in order to provide a fair comparison. We believed it unfair to give credit to the tracking module if we train a customized YOLO model. The model is pre-trained on ImageNet dataset and finetuned on VOC dataset, capable of detecting objects of only 20 classes. We therefore picked 30 out of 100 videos from the benchmark [OTB100](http://cvlab.hanyang.ac.kr/tracker_benchmark/datasets.html), where the tracking targets belong to these classes. The subset is so-called OTB30.
+作为通用目标检测器，YOLO可通过训练识别任意目标。然而由于ROLO的性能依赖于YOLO结果，为确保比较的公平性，我们选择默认的YOLO小模型。若采用定制化训练的YOLO模型来衡量跟踪模块的性能不利于最后结果比对的公共。所以模型先在ImageNet数据集上进行预训练，然后在VOC数据集上微调，达到20个类别的目标的分类。因此，我们从基准测试 [OTB100](http://cvlab.hanyang.ac.kr/tracker_benchmark/datasets.html) 中选取了OTB100基准测试100个视频中的30个，这些视频的跟踪目标均属于上述类别，该子集被称为OTB30。
 
-**DATA**
+**数据**
 
 - [DATA and Results for Demo](http://guanghan.info/projects/ROLO/DATA/DATA.zip)
 
-**Models**
+**模型**
 
 - [Model for demo](http://guanghan.info/projects/ROLO/demo/model_demo.ckpt)
 
@@ -46,45 +47,41 @@ As a generic object detector, YOLO can be trained to recognize arbitrary objects
 
 - [Model for experiment 3](http://guanghan.info/projects/ROLO/experiment_3/model_step3_exp3.ckpt)
 
-**Evaluation**
+**环境**
 
 - [Evaluation Results (including other trackers)](http://guanghan.info/projects/ROLO/output/evaluation.rar)
 
-### 2. Run Demo
+### 2. Demo运行
 
-Reproduce the results with the pre-trained model:
+使用预训练模型复现结果:
 
 	python ./experiments/testing/ROLO_network_test_all.py
 
 Or download the results at [Results](http://).
 
-Run video Demo:
+运行视频 Demo:
 
 	./python ROLO_demo_test.py
 
 
-### 3. Training and Testing
+### 3. 训练与测试
 
-As deep learning applications get mature, it will be more efficient to have multi-functional networks consisted of orthogonal modules. Feature representation, in this case, had better be trained separately to provide shared features. Pre-training of visual features from ImageNet are skipped, as were discussed already in YOLO. We focus on training the LSTM module.
+随着深度学习应用日趋成熟，构建由正交模块组成的多功能网络将更为高效。在这种情况下，特征表征最好通过独立训练来提供共享特征。如YOLO论文已讨论的，我们跳过了ImageNet视觉特征的预训练环节，将重点放在LSTM模块的训练上。
 
+**实验 1**:
 
-**Experiment 1**:
+离线跟踪的局限性在于模型训练需要海量数据支撑，而公开的目标跟踪基准数据集却难以满足这一需求。即便采用OTB100[[2]]全部100个视频，其数据规模仍比图像识别任务小几个数量级，因此跟踪器极易出现过拟合现象。
 
-The limitation of offline tracking is that the offline models need to be trained with large amounts of data, which is hard to find in publicly available object tracking benchmarks. Even considering the whole 100 videos of OTB100 [[2]], the amount is still smaller than that of image recognition tasks by order of magnitudes. Therefore trackers are prone to over-fitting. 
+为验证ROLO的泛化能力，我们设计了实验1：使用OTB30中22个视频进行训练，并在其余8个视频上进行测试。结果表明，该模型的性能超越了基准测试[[2]]中所有传统跟踪器。
 
-In order to test the generalization ability of ROLO, we conduct experiment 1. 
-Training on 22 videos and testing on the rest 8 videos of OTB30, the model is able to outperform all the traditional trackers from the benchmark [[2]].
-
-
-We also test on 3 additional videos that are not selected for OTB30, as their ground truth is face but not human body. Since face is not included in the default YOLO model, YOLO will detect human body instead and ROLO will be supervised to track the human body. 
-Demo videos are available here.
+我们从未入选OTB30的视屏中额外测试了3个真实标注对象为人脸而非人体的视频。由于默认YOLO模型未包含人脸类别，YOLO会转而检测人体目标，而ROLO则在监督指导下对人体进行跟踪。演示视频可在此处查看。
 [Video 1](https://www.youtube.com/watch?v=7dDsvVEt4ak),
 [Video 2](https://www.youtube.com/watch?v=w7Bxf4guddg),
 [Video 3](https://www.youtube.com/watch?v=qElDUVmYSpY).
 
 <iframe width="420" height="315" src="https://www.youtube.com/embed/7dDsvVEt4ak" frameborder="0" allowfullscreen></iframe>
 
-To reproduce experiment 1：
+实验1复现：
 
 - Training: 
 
@@ -98,11 +95,11 @@ To reproduce experiment 1：
 	python ./experiments/testing/ROLO_network_test_all.py
 	```
 
-**Experiment 2**:
+**实验 2**:
 
-If the model is inevitably trained with limited data, one way to remedy this is to train the model with similar dynamics. (Same strategy is used by trackers that employ online model updating). We train a 2nd LSTM model with the first 1/3 frames of OTB30 and test on the rest frames. Results show that performance has improved. We find that, once trained on auxiliary frames with the similar dynamics, ROLO will perform better on testing sequences. This attribute makes ROLO especially useful in surveillance environments, where models can be trained offline with pre-captured data. 
+若模型必须在有限数据下进行训练，可通过具有相似运动模式的数据进行弥补（此策略同样适用于采用在线模型更新的跟踪器）。使用OTB30数据集前1/3帧序列训练第二个LSTM模型，并在剩余帧上进行测试。结果表明该方法的性能得到了提升。研究发现，当在具有相似运动模式的辅助帧序列上训练后，ROLO在测试序列中表现更优。这一特性使得ROLO在监控场景中尤为实用，证明利用预采集数据离线训练模型是可行的。
 
-To reproduce experiment 2：
+实验2复现：
 
 - Training:
 
@@ -115,12 +112,12 @@ To reproduce experiment 2：
 	```
 
 
-**Experiment 3**:
+**实验 3**:
 
-Considering this attribute observed in experiment 2, we experiment incrementing training frames.
-Training with full frames but using only 1/3 ground truths will give an additional boost to the performance. 
+基于实验2中观察到的这一特性，我们尝试增加训练帧数进行实验。
+结果表明，使用全部视频帧进行训练（但仅使用其中1/3的真实标注数据）能够进一步提升模型性能。
 
-To reproduce experiment 3：
+实验3复现：
 
 - Training:
 
@@ -132,16 +129,15 @@ To reproduce experiment 3：
 	python ./experiments/testing/ROLO_network_test_all.py
 	```
 
-**Limitations**
+**局限性分析**
 
-Note that experiment 2&3 use 1/3 training frames. Upon evaluation, we should exclude these frames. Note also that using different frames from the same video sequences for training and testing can still be problematic. An online updating scheme for ROLO will be very useful in the future. 
+实验2与实验3均使用了1/3的视频帧进行训练。在性能评估时，这些训练帧必须从测试集中排除。同时，即使在同一视频序列中分别选取训练帧和测试帧，仍可能存在数据泄露风险。这点在ROLO设计在线更新机制需特殊注意。
 
-We will update experiments using customized YOLO models, in order to be able to detect arbitrary objects and therefore test on the whole OTB100 dataset, where we will also be able to train and test on different datasets to perform cross-validation.
+后续将采用定制化YOLO模型进行实验更新，以实现对任意目标的检测能力。这将支持在完整OTB100数据集上的测试，并能够通过在不同数据集上进行训练与测试来完成交叉验证。
 
-**Parameter Sensitivity**
+**参数敏感性分析**
 
-Repeat experiment 2 with different step sizes: [1, 3, 6, 9]
-
+使用不同step: [1, 3, 6, 9]重复实验2
 
 ```
 python ./experiments/testing/ROLO_step1_train_30_exp2.py
@@ -162,7 +158,7 @@ python ./experiments/testing/ROLO_step9_train_30_exp2.py
 ![](http://guanghan.info/projects/ROLO/fps_over_steps.png)
 ![](http://guanghan.info/projects/ROLO/IOU_over_steps.png)
 
-### 4. Visualization with Heatmap 
+### 4. 可视化
 
 - Demo:
 	```
@@ -179,33 +175,33 @@ python ./experiments/testing/ROLO_step9_train_30_exp2.py
 
 ![](http://guanghan.info/projects/ROLO/heatmap_small1.png)
 ![](http://guanghan.info/projects/ROLO/heatmap_small2.png)
-- Blue: YOLO detection
-- Red: Ground Truth
+- Blue: YOLO结果
+- Red: 真实标注
 
-### 5. Performance Evaluation 
+### 5. 性能评估
 
 	python ./ROLO_evaluation.py
 
 
-### 6. Results
+### 6. 结果
 
-More Qualitative results can be found in the project page.  Quantitative results please refer to the arxiv paper.
+更多定性分析结果请参见项目页面，定量分析结果请参阅arXiv论文。
 
 ![](http://guanghan.info/projects/ROLO/occlusion.jpeg)
 ![](http://guanghan.info/projects/ROLO/occlusion2.jpeg)
 
-- Blue: YOLO detection
-- Green: ROLO Tracking
-- Red: Ground Truth
+- Blue: YOLO检测
+- Green: ROLO跟踪
+- Red: 真实标注
 
 
 ---
 ## License
 
-ROLO is released under the Apache License Version 2.0 (refer to the LICENSE file for details).
+ROLO依据Apache License Version 2.0版本发布（具体条款详见LICENSE文件）。
 
 ---
-## Citation
+## 引用
 The details are published as a technical report on arXiv. If you use the code and models, please cite the following paper:
 [arXiv:1607.05781](http://arxiv.org/abs/1607.05781).
 
@@ -218,7 +214,7 @@ The details are published as a technical report on arXiv. If you use the code an
 
 
 ---
-## Reference
+## 参考
 [[1]] Redmon, Joseph, et al. "You only look once: Unified, real-time object detection." CVPR (2016).
 
 [1]: http://arxiv.org/pdf/1506.02640.pdf "YOLO"
